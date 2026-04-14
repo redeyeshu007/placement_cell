@@ -38,9 +38,9 @@ export function Sidebar() {
 
   return (
     <div className="w-80 bg-white border-r-4 border-black/5 h-screen sticky top-0 flex flex-col p-8 selection:bg-[#0066FF]/20">
-      <div className="mb-20">
+      <div className="mb-10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#0066FF] flex items-center justify-center shadow-lg shadow-[#0066FF]/20">
+          <div className="w-12 h-12 rounded-2xl bg-[#0066FF] flex items-center justify-center shadow-lg shadow-[#0066FF]/20 shrink-0">
             <GraduationCap className="w-7 h-7 text-white" />
           </div>
           <div className="flex flex-col">
@@ -50,7 +50,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-4">
+      <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2">
         {items.map((item) => {
           const isActive = pathname === item.href;
           return (
