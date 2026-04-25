@@ -224,13 +224,26 @@ export default function ResumePage() {
   return (
     <div className="space-y-10 pt-10 pb-24">
       {/* Header */}
-      <div className="pb-6 border-b border-slate-200">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="px-2.5 py-1 rounded bg-[#0f3b9c]/10 text-[#0f3b9c] text-xs font-bold uppercase tracking-wide">AI Optimised</div>
-          <div className="px-2.5 py-1 rounded bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wide">Auto-Detect</div>
+      <div className="pb-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center gap-6">
+        {student.profilePhoto ? (
+          <img 
+            src={student.profilePhoto} 
+            alt={student.name || "Student"} 
+            className="w-20 h-20 rounded-full object-cover shadow-sm border border-slate-200 shrink-0"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-[#0f3b9c]/10 flex items-center justify-center text-[#0f3b9c] font-bold text-2xl shrink-0">
+            {student.name ? student.name.charAt(0).toUpperCase() : "S"}
+          </div>
+        )}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="px-2.5 py-1 rounded bg-[#0f3b9c]/10 text-[#0f3b9c] text-xs font-bold uppercase tracking-wide">AI Optimised</div>
+            <div className="px-2.5 py-1 rounded bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wide">Auto-Detect</div>
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-1">Resume Analyzer</h1>
+          <p className="text-sm text-slate-500 max-w-2xl">Upload your resume PDF — we'll detect skills, projects, hackathons, internships, ATS score, and validate against your GitHub.</p>
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-1">Resume Analyzer</h1>
-        <p className="text-sm text-slate-500">Upload your resume PDF — we'll detect skills, projects, hackathons, internships, ATS score, and validate against your GitHub.</p>
       </div>
 
       {/* Upload card */}
