@@ -352,6 +352,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [name, setName] = useState<string>("");
+  const [photo, setPhoto] = useState<string>("");
   const [role, setRole] = useState<string>("");
   const [studentId, setStudentId] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -368,7 +369,10 @@ export function Header() {
     } else {
       fetch(`/api/students/${savedId}`)
         .then((r) => r.json())
-        .then((data) => { if (data?.name) setName(data.name); })
+        .then((data) => { 
+          if (data?.name) setName(data.name); 
+          if (data?.profilePhoto) setPhoto(data.profilePhoto);
+        })
         .catch(() => {});
     }
   }, []);
@@ -440,9 +444,17 @@ export function Header() {
                         role === "student" ? "cursor-pointer hover:opacity-80 group" : "cursor-default"
                       )}
                     >
-                      <div className="w-9 h-9 rounded-xl bg-[#0f3b9c] flex items-center justify-center text-white text-sm font-bold shadow-inner">
-                        {name[0]}
-                      </div>
+                      {photo ? (
+                        <img 
+                          src={photo} 
+                          alt={name} 
+                          className="w-9 h-9 rounded-xl object-cover shadow-inner"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-xl bg-[#0f3b9c] flex items-center justify-center text-white text-sm font-bold shadow-inner">
+                          {name[0]}
+                        </div>
+                      )}
                       <div className="flex flex-col text-left">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] leading-none mb-1">
                           {role === "admin" ? "Administrator" : "Student"}
