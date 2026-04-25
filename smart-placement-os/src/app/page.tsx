@@ -1,150 +1,147 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowUpRight, GraduationCap, ChevronRight, Star, ShieldCheck, Zap } from "lucide-react";
+import { 
+  ArrowUpRight, 
+  Target, 
+  BarChart3, 
+  Zap, 
+  ShieldCheck, 
+  Award,
+  Users,
+  Building2,
+  ChevronRight
+} from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export default function LandingPage() {
-  const marqueeItems = [
-    "VERBAL", "APTITUDE", "REASONING", "PLACEMENT 2026", "CODING", "SOFT SKILLS",
-    "VERBAL", "APTITUDE", "REASONING", "PLACEMENT 2026", "CODING", "SOFT SKILLS"
-  ];
-
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-[#0066FF]/20 overflow-x-hidden">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-black/5">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-[#0066FF] flex items-center justify-center shadow-lg">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
-            <span className="font-black text-2xl tracking-tighter uppercase leading-none">PSNA | <span className="text-[#0066FF]">PLACEMENTFRIEND</span></span>
-          </div>
-          <div className="hidden md:flex items-center gap-10 text-sm font-bold uppercase tracking-widest text-black/60">
-            <Link href="#platform" className="hover:text-black transition-colors">Platform</Link>
-          </div>
-          <Link href="/auth/login" className="bg-black text-white px-8 py-3 rounded-full text-sm font-bold uppercase tracking-widest hover:scale-105 transition-all">
-            Join Now
-          </Link>
-        </div>
-      </nav>
-
+    <div className="space-y-24 pb-24">
       {/* Hero Section */}
-      <section className="pt-40 pb-20 px-6">
-        <div className="max-w-7xl mx-auto relative">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-            <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-8"
-            >
-              <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter mb-10 text-balance">
-                YOUR FUTURE <span className="text-[#0066FF]">STARTS</span> <br />
-                RIGHT HERE AT <br />
-                <span className="text-[#FF8A00]">PSNA COLLEGE</span>
-              </h1>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-4 lg:pt-4"
-            >
-              <p className="text-xl text-black/60 font-medium leading-relaxed mb-8 max-w-sm">
-                The official AI-powered placement portal of PSNA College. Manage your career profile and connect with top recruiters seamlessly.
-              </p>
-              <Link href="/auth/login" className="inline-flex items-center gap-4 bg-black text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-[#FF8A00] transition-colors group">
-                Get Started
-                <ArrowUpRight className="w-6 h-6 group-hover:rotate-45 transition-transform" />
-              </Link>
-            </motion.div>
-          </div>
-
-          {/* Feature Cards Container */}
-          <div className="mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative items-end">
-            <div className="space-y-8">
-              <div className="flex flex-col gap-1">
-                <span className="text-5xl font-black">12+</span>
-                <span className="text-sm font-bold uppercase tracking-widest text-black/40">Completed Projects</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-5xl font-black">8K+</span>
-                <span className="text-sm font-bold uppercase tracking-widest text-black/40">Student Success</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-5xl font-black">4.3K+</span>
-                <span className="text-sm font-bold uppercase tracking-widest text-black/40">Company Partners</span>
-              </div>
+      <section className="relative overflow-hidden py-8 md:py-12">
+        <div className="flex flex-col items-center text-center relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8 flex flex-col items-center"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0f3b9c]/10 text-[#0f3b9c] text-xs font-bold tracking-wide uppercase">
+              <span className="w-2 h-2 rounded-full bg-[#0f3b9c] animate-pulse" />
+              Empowering Careers Since 1984
             </div>
+            
+            <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 leading-[1.1] tracking-tight max-w-4xl">
+              Bridging Ambition <br />
+              <span className="text-[#0f3b9c]">With Opportunity</span>
+            </h1>
+            
+            <p className="text-lg text-slate-600 leading-relaxed max-w-2xl">
+              Unlock your career potential with PSNA's AI-Powered Placement Portal. Smart matching, live tracking, and advanced skill analytics designed for the Class of 2026.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <Link href="/auth/login" className="px-10 py-4 rounded-xl bg-[#0f3b9c] text-white font-bold text-sm shadow-lg shadow-[#0f3b9c]/20 hover:bg-[#0c2a70] transition-all flex items-center justify-center gap-2 group">
+                Student Access
+                <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+              </Link>
+              <Link href="#features" className="px-10 py-4 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all text-center">
+                Explore Platform
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+        
+        {/* Background glow elements */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#0f3b9c]/5 rounded-full blur-[120px] -z-0" />
+      </section>
 
-            <motion.div 
-              whileHover={{ rotate: 1, scale: 1.02 }}
-              className="bg-[#FF8A00] jobia-card -rotate-2 shadow-2xl shadow-[#FF8A00]/40 -mb-12"
-            >
-              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-12">
-                <ShieldCheck className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-4xl font-black text-white leading-tight mb-4">Extensible &<br />Secure</h3>
-              <p className="text-white/80 font-medium mb-8">Lorem ipsum dolor sit amet consec tetur. Sed do eiusmod.</p>
-              <div className="w-12 h-12 rounded-full border-2 border-white/40 flex items-center justify-center text-white">
-                <ArrowUpRight className="w-6 h-6" />
-              </div>
-            </motion.div>
+      {/* Stats Section */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <StatItem value="150+" label="Hiring Partners" icon={<Building2 />} />
+        <StatItem value="8.5 LPA" label="Avg Package" icon={<Award />} />
+        <StatItem value="94%" label="Placement Rate" icon={<Target />} />
+        <StatItem value="5,000+" label="Students Tracked" icon={<Users />} />
+      </section>
 
-            <motion.div 
-              whileHover={{ rotate: -1, scale: 1.04 }}
-              className="bg-[#0066FF] jobia-card rotate-3 shadow-2xl shadow-[#0066FF]/40 mb-12"
-            >
-              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-12">
-                <Zap className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-4xl font-black text-white leading-tight mb-4">Extensible &<br />Secure</h3>
-              <p className="text-white/80 font-medium mb-8">Lorem ipsum dolor sit amet consec tetur. Sed do eiusmod.</p>
-              <div className="w-12 h-12 rounded-full border-2 border-white/40 flex items-center justify-center text-white">
-                <ArrowUpRight className="w-6 h-6" />
-              </div>
-            </motion.div>
-          </div>
+      {/* Features Grid */}
+      <section id="features" className="space-y-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-3xl font-bold text-slate-900">Advanced Placement Ecosystem</h2>
+          <p className="text-slate-500 max-w-2xl mx-auto">
+            Everything you need to navigate the recruitment season with data-driven insights and professional tools.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <FeatureCard 
+            title="Smart Matching" 
+            desc="Our proprietary algorithm matches your skill quotient with company requirements in real-time."
+            icon={<Zap className="text-amber-500" />}
+          />
+          <FeatureCard 
+            title="PRS Tracking" 
+            desc="Monitor your Placement Readiness Score and get actionable insights to improve your profile."
+            icon={<BarChart3 className="text-blue-500" />}
+          />
+          <FeatureCard 
+            title="Career Portfolio" 
+            desc="Showcase your Github projects, certifications, and academic excellence in one unified view."
+            icon={<ShieldCheck className="text-emerald-500" />}
+          />
         </div>
       </section>
 
-      {/* Marquee Section */}
-      <div className="bg-black py-16 mt-32 overflow-hidden border-y border-white/10">
-        <div className="marquee-container">
-          <div className="marquee-content">
-            {marqueeItems.concat(marqueeItems).map((item, i) => (
-              <div key={i} className="flex items-center gap-10">
-                <span className="text-7xl font-black text-white tracking-tighter uppercase">{item}</span>
-                <Star className="w-12 h-12 text-[#FF8A00] fill-[#FF8A00]" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section */}
-      <footer className="bg-black text-white py-32 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-          <h2 className="text-6xl md:text-8xl font-black tracking-tighter mb-12 leading-none">
-            READY TO START <br />
-            <span className="text-outline">YOUR JOURNEY?</span>
+      {/* CTA Section */}
+      <section className="relative rounded-3xl bg-[#0f3b9c] p-12 overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center text-center space-y-8">
+          <h2 className="text-4xl font-bold text-white leading-tight">
+            Ready to secure your future?
           </h2>
-          <div className="flex flex-col sm:flex-row gap-6">
-            <Link href="/auth/login" className="bg-[#FF8A00] text-white px-12 py-6 rounded-3xl font-black italic tracking-[0.2em] transform hover:scale-105 transition-all shadow-xl shadow-[#FF8A00]/20">
-              STUDENT LOGIN
-            </Link>
-            <Link href="/dashboard/admin" className="bg-white text-black px-12 py-6 rounded-3xl font-black italic tracking-[0.2em] transform hover:scale-105 transition-all shadow-xl shadow-white/10">
-              OFFICER LOGIN
+          <p className="text-[#e0e7ff] max-w-xl">
+            Join thousands of PSNA students already using our portal to kickstart their professional careers.
+          </p>
+          <div className="flex gap-4">
+            <Link href="/auth/login" className="px-10 py-4 bg-white text-[#0f3b9c] font-extrabold rounded-xl hover:bg-slate-50 transition-colors shadow-xl">
+              Log In Now
             </Link>
           </div>
-          <p className="mt-20 text-white/20 text-sm font-bold uppercase tracking-widest">
-            © 2026 PSNA COLLEGE OF ENGINEERING AND TECHNOLOGY • PLACEMENT CELL
-          </p>
         </div>
-      </footer>
+        
+        {/* Decorative circle */}
+        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 border border-white/10 rounded-full" />
+        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+      </section>
+    </div>
+  );
+}
+
+function StatItem({ value, label, icon }: { value: string, label: string, icon: React.ReactNode }) {
+  return (
+    <div className="p-6 bg-white rounded-2xl border border-slate-100 flex flex-col items-center text-center group hover:border-[#0f3b9c]/30 transition-colors">
+      <div className="p-3 rounded-full bg-slate-50 text-[#0f3b9c] mb-4 group-hover:bg-[#0f3b9c]/10 transition-colors">
+        {icon}
+      </div>
+      <div className="text-2xl font-bold text-slate-900 tracking-tight">{value}</div>
+      <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1">{label}</div>
+    </div>
+  );
+}
+
+function FeatureCard({ title, desc, icon }: { title: string, desc: string, icon: React.ReactNode }) {
+  return (
+    <div className="p-10 bg-white rounded-[2rem] border border-slate-200 hover:shadow-xl transition-all group">
+      <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
+        {icon}
+      </div>
+      <h3 className="text-xl font-bold text-slate-900 mb-4">{title}</h3>
+      <p className="text-slate-500 leading-relaxed text-sm">
+        {desc}
+      </p>
+      <button className="mt-8 flex items-center gap-2 text-xs font-bold text-[#0f3b9c] uppercase tracking-widest hover:gap-3 transition-all">
+        Learn More <ChevronRight className="w-4 h-4" />
+      </button>
     </div>
   );
 }

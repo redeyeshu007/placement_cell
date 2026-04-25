@@ -1,65 +1,29 @@
 "use client";
 
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  BarChart2,
-  Code,
-  GraduationCap,
-  Brain,
-  Mic,
-  Globe,
-  TrendingUp,
-  ArrowUpRight,
-  Zap,
-  Star,
-  ChevronRight,
-  AlertCircle,
-  CheckCircle2,
+  BarChart2, Code, GraduationCap, Brain, Mic,
+  TrendingUp, ArrowUpRight, Star, AlertCircle,
+  Award, FileText, GitBranch,
+  Trophy, Zap, BookOpen, Sparkles,
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import React from "react";
 import { fetchFromGAS } from "@/lib/api";
-import { Student } from "@/lib/matching";
+import { Student, computePRS } from "@/lib/matching";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-// ─── PRS Calculation ──────────────────────────────────────────────────────────
-function computePRS(student: Student) {
-  const technical = Math.min(
-    100,
-    (student.skills.length / 6) * 60 + (student.githubLink ? 40 : 0)
-  );
-  const academic = Math.min(100, (student.cgpa / 10) * 100);
-  const problemSolving = Math.min(100, student.hackathons * 25);
-  const communication = Math.min(100, student.certifications * 12);
-  const professional = Math.min(
-    100,
-    (student.githubLink ? 35 : 0) +
-      (student.resume_link ? 35 : 0) +
-      Math.min(30, student.certifications * 5)
-  );
-
-  const composite = Math.round(
-    technical * 0.3 +
-      academic * 0.2 +
-      problemSolving * 0.2 +
-      communication * 0.15 +
-      professional * 0.15
-  );
-
-  return { technical, academic, problemSolving, communication, professional, composite };
-}
-
 function getLevel(score: number) {
-  if (score >= 85) return { label: "CHAMPION", color: "#FFD700", next: null };
-  if (score >= 72) return { label: "ELITE", color: "#9333EA", next: 85 };
-  if (score >= 58) return { label: "CONTENDER", color: "#0066FF", next: 72 };
-  if (score >= 42) return { label: "RISING", color: "#FF8A00", next: 58 };
-  return { label: "ROOKIE", color: "#64748b", next: 42 };
+  if (score >= 82) return { label: "Elite", color: "#0f3b9c", bg: "#e0e7ff", next: null };
+  if (score >= 68) return { label: "Professional", color: "#1e40af", bg: "#dbeafe", next: 82 };
+  if (score >= 54) return { label: "Competitive", color: "#2563eb", bg: "#eff6ff", next: 68 };
+  if (score >= 40) return { label: "Rising", color: "#3b82f6", bg: "#f0f9ff", next: 54 };
+  return { label: "Foundational", color: "#64748b", bg: "#f8fafc", next: 40 };
 }
 
 // ─── Animated Ring ────────────────────────────────────────────────────────────
-function ScoreRing({ score, color }: { score: number; color: string }) {
+function ScoreRing({ score, level }: { score: number; level: any }) {
   const r = 90;
   const circumference = 2 * Math.PI * r;
   const [displayed, setDisplayed] = useState(0);
@@ -67,7 +31,7 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   useEffect(() => {
     let frame: number;
     let start: number | null = null;
-    const duration = 1400;
+    const duration = 1500;
     const tick = (ts: number) => {
       if (!start) start = ts;
       const progress = Math.min((ts - start) / duration, 1);
@@ -82,24 +46,24 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
 
   return (
     <div className="relative inline-flex items-center justify-center">
-      <svg width="220" height="220" className="-rotate-90">
-        <circle cx="110" cy="110" r={r} fill="none" stroke="#f4f4f5" strokeWidth="16" />
+      <svg width="240" height="240" className="-rotate-90">
+        <circle cx="120" cy="120" r={r} fill="none" stroke="#f1f5f9" strokeWidth="12" />
         <circle
-          cx="110"
-          cy="110"
+          cx="120"
+          cy="120"
           r={r}
           fill="none"
-          stroke={color}
-          strokeWidth="16"
+          stroke={level.color}
+          strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 0.05s linear" }}
+          style={{ transition: "stroke-dashoffset 0.1s ease-out" }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-6xl font-black tracking-tighter leading-none">{displayed}</span>
-        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-black/40 mt-1">PRS</span>
+        <span className="text-7xl font-extrabold text-[#0f3b9c] tracking-tighter tabular-nums leading-none">{displayed}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">Readiness Index</span>
       </div>
     </div>
   );
@@ -109,132 +73,62 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
 function DimensionCard({
   icon,
   label,
-  weight,
   score,
   color,
   tip,
   delay,
+  weight,
 }: {
   icon: React.ReactNode;
   label: string;
-  weight: string;
   score: number;
   color: string;
   tip: string;
   delay: number;
+  weight?: string;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 15 }}
+      whileInView={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
-      className="bg-[#f4f4f5] rounded-[2.5rem] p-8 group hover:bg-black hover:text-white transition-all duration-300"
+      className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow group"
     >
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-5">
         <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
-          style={{ backgroundColor: `${color}20`, color }}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"
+          style={{ backgroundColor: `${color}10`, color }}
         >
           {icon}
         </div>
         <div className="text-right">
-          <div className="text-5xl font-black tracking-tighter leading-none" style={{ color }}>
+          <div className="text-3xl font-extrabold tracking-tight tabular-nums" style={{ color }}>
             {Math.round(score)}
           </div>
-          <div className="text-[8px] font-black uppercase tracking-widest text-black/30 group-hover:text-white/30 mt-1">
-            / 100
-          </div>
+          {weight && (
+            <div className="text-[9px] font-bold uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded" style={{ backgroundColor: `${color}15`, color }}>
+              {weight} weight
+            </div>
+          )}
         </div>
       </div>
 
-      <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-1">{label}</h3>
-      <div className="text-[8px] font-black uppercase tracking-widest text-black/30 group-hover:text-white/30 mb-5">
-        WEIGHT: {weight}
-      </div>
+      <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wide">{label}</h3>
 
-      {/* Progress bar */}
-      <div className="h-2 bg-black/10 group-hover:bg-white/10 rounded-full mb-4 overflow-hidden">
+      <div className="h-1.5 bg-slate-100 rounded-full mb-4 overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${score}%` }}
-          transition={{ delay: delay + 0.2, duration: 0.9, ease: "easeOut" }}
+          transition={{ delay: delay + 0.3, duration: 1.2, ease: "easeOut" }}
           className="h-full rounded-full"
           style={{ backgroundColor: color }}
         />
       </div>
 
-      <p className="text-[10px] text-black/50 group-hover:text-white/50 font-bold leading-relaxed">
+      <p className="text-xs text-slate-500 font-medium leading-relaxed italic">
         {tip}
       </p>
     </motion.div>
-  );
-}
-
-// ─── Sparkline ────────────────────────────────────────────────────────────────
-function Sparkline({ current }: { current: number }) {
-  const months = ["NOV", "DEC", "JAN", "FEB", "MAR", "APR"];
-  // Simulate progression leading to current score
-  const base = Math.max(20, current - 35);
-  const values = [
-    base,
-    base + 5,
-    base + 10,
-    base + 18,
-    base + 26,
-    current,
-  ].map((v) => Math.min(100, Math.max(0, v)));
-
-  const maxV = 100;
-  const minV = 0;
-  const w = 300;
-  const h = 80;
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w;
-    const y = h - ((v - minV) / (maxV - minV)) * h;
-    return `${x},${y}`;
-  });
-
-  return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0066FF" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#0066FF" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <polyline
-          fill="none"
-          stroke="#0066FF"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={pts.join(" ")}
-        />
-      </svg>
-      <div className="flex justify-between mt-3">
-        {months.map((m, i) => (
-          <div key={m} className="text-center">
-            <div
-              className={cn(
-                "text-[8px] font-black uppercase tracking-widest",
-                i === months.length - 1 ? "text-[#0066FF]" : "text-black/30"
-              )}
-            >
-              {m}
-            </div>
-            <div
-              className={cn(
-                "text-[10px] font-black",
-                i === months.length - 1 ? "text-black" : "text-black/40"
-              )}
-            >
-              {values[i]}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -249,7 +143,7 @@ export default function PRSPage() {
     if (!savedId) { router.push("/auth/login"); return; }
     async function load() {
       const data = await fetchFromGAS("getStudents");
-      const s = data.find((x: any) => String(x.id) === savedId);
+      const s = (data as any[]).find((x: any) => String(x.id) === savedId);
       if (!s) { router.push("/auth/login"); return; }
       setStudent(s);
       setLoading(false);
@@ -259,192 +153,226 @@ export default function PRSPage() {
 
   if (loading || !student)
     return (
-      <div className="flex items-center justify-center min-h-screen font-black uppercase tracking-widest text-[#0066FF] animate-pulse">
-        Computing Readiness...
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#0f3b9c]">
+        <div className="w-10 h-10 border-4 border-[#0f3b9c]/20 border-t-[#0f3b9c] rounded-full animate-spin mb-4" />
+        <div className="text-sm font-semibold tracking-wide">Syncing Progress Data...</div>
       </div>
     );
 
   const scores = computePRS(student);
   const level = getLevel(scores.composite);
 
+  const solved = (student as any).leetcodeSolved ?? 0;
+  const arrearPenalty = Math.min(20, student.activeBacklogs * 5);
+
   const dimensions = [
     {
-      icon: <Code className="w-6 h-6" />,
-      label: "Technical Skills",
-      weight: "30%",
-      score: scores.technical,
-      color: "#0066FF",
-      tip:
-        scores.technical < 70
-          ? "Add more skills (Python, DSA, Cloud) and push projects to GitHub to raise this score."
-          : "Strong technical profile. Keep contributing to open source to stay ahead.",
+      icon: <GraduationCap className="w-6 h-6" />,
+      label: "CGPA",
+      score: scores.cgpa,
+      color: "#6366f1",
+      weight: "20%",
+      tip: scores.cgpa < 75
+        ? `CGPA ${student.cgpa} — target 8.5+ to unlock tier-1 companies.`
+        : `Excellent CGPA ${student.cgpa}. A major differentiator in shortlisting.`,
     },
     {
-      icon: <GraduationCap className="w-6 h-6" />,
-      label: "Academic Performance",
-      weight: "20%",
-      score: scores.academic,
-      color: "#9333EA",
-      tip:
-        scores.academic < 75
-          ? `Your CGPA of ${student.cgpa} is below 8.5. Focus on upcoming semester exams to boost this.`
-          : `CGPA of ${student.cgpa} is excellent — this is a strong competitive advantage.`,
+      icon: <Code className="w-6 h-6" />,
+      label: "Skills",
+      score: scores.skills,
+      color: "#0f3b9c",
+      weight: "15%",
+      tip: scores.skills < 60
+        ? `${student.skills.length} skills detected. Aim for 8+ to hit full score.`
+        : `Strong skill portfolio (${student.skills.length} skills). Keep it industry-current.`,
     },
     {
       icon: <Brain className="w-6 h-6" />,
-      label: "Problem Solving",
-      weight: "20%",
-      score: scores.problemSolving,
-      color: "#FF8A00",
-      tip:
-        student.hackathons < 2
-          ? "Participate in at least 2–3 hackathons. Each one adds major points and demonstrates real-world problem solving."
-          : `${student.hackathons} hackathons on record — outstanding. Keep competing!`,
+      label: "Hackathons",
+      score: scores.hackathons,
+      color: "#f59e0b",
+      weight: "10%",
+      tip: student.hackathons < 2
+        ? "Participate in hackathons — signals high-pressure problem solving."
+        : `${student.hackathons} hackathons. You're in the top 5% of candidates.`,
     },
     {
       icon: <Mic className="w-6 h-6" />,
-      label: "Communication",
-      weight: "15%",
-      score: scores.communication,
+      label: "Certifications",
+      score: scores.certifications,
       color: "#10b981",
-      tip:
-        scores.communication < 60
-          ? "Attend mock interviews and earn presentation certifications to build your communication score."
-          : "Good communication signals. Mock interview sessions will push this further.",
+      weight: "10%",
+      tip: student.certifications < 2
+        ? "Add 2+ industry certifications to boost credibility."
+        : `${student.certifications} certifications. Strong professional credential signal.`,
     },
     {
-      icon: <Globe className="w-6 h-6" />,
-      label: "Professional Presence",
+      icon: <Trophy className="w-6 h-6" />,
+      label: "LeetCode",
+      score: scores.leetcode,
+      color: "#f97316",
+      weight: "10%",
+      tip: solved === 0
+        ? "Connect your LeetCode profile on the dashboard to track solved problems."
+        : solved < 100
+          ? `${solved} problems solved. Aim for 200+ for a perfect LeetCode score.`
+          : `${solved} problems solved — exceptional DSA preparation.`,
+    },
+    {
+      icon: <Sparkles className="w-6 h-6" />,
+      label: "Resume Strength",
+      score: scores.resumeStrength,
+      color: "#8b5cf6",
       weight: "15%",
-      score: scores.professional,
-      color: "#f43f5e",
-      tip:
-        !student.githubLink || !student.resume_link
-          ? "Ensure your GitHub link and Resume are added to your profile. Missing these heavily impacts this dimension."
-          : "Complete professional presence detected. Keep certifications up to date.",
+      tip: scores.resumeStrength === 0
+        ? "Upload your resume on the Resume Builder page to get an AI strength score."
+        : scores.resumeStrength < 60
+          ? `AI rated your resume ${(student as any).resumeStrengthLevel ?? "Moderate"}. Add quantified impact and action verbs.`
+          : `AI rated your resume ${(student as any).resumeStrengthLevel ?? "Strong"} — ATS-ready and impactful.`,
+    },
+    {
+      icon: <FileText className="w-6 h-6" />,
+      label: "Resume Projects",
+      score: scores.projects,
+      color: "#06b6d4",
+      weight: "5%",
+      tip: (student as any).resumeProjects?.length > 0
+        ? `${(student as any).resumeProjects.length} projects in resume. 5+ hits full score.`
+        : "Upload your resume to extract project names automatically.",
+    },
+    {
+      icon: <GitBranch className="w-6 h-6" />,
+      label: "Valid GitHub Projects",
+      score: scores.validProjects,
+      color: "#059669",
+      weight: "5%",
+      tip: (student as any).validatedProjectsCount > 0
+        ? `${(student as any).validatedProjectsCount} resume projects verified on GitHub.`
+        : "Sync GitHub repos and upload resume to validate projects.",
+    },
+    {
+      icon: <BookOpen className="w-6 h-6" />,
+      label: "Experience",
+      score: scores.experience,
+      color: "#ec4899",
+      weight: "5%",
+      tip: scores.experience === 0
+        ? "Upload your resume — AI will detect internships and work experience."
+        : `Experience level: ${(student as any).resumeExperienceLevel ?? "detected"}. ${(student as any).resumeExperienceSummary ?? ""}`,
+    },
+    {
+      icon: <Zap className="w-6 h-6" />,
+      label: "Arrear Penalty",
+      score: Math.max(0, 100 - arrearPenalty * 5),
+      color: student.activeBacklogs > 0 ? "#ef4444" : "#10b981",
+      weight: "-5/backlog",
+      tip: student.activeBacklogs === 0
+        ? "No active arrears — clean academic record."
+        : `${student.activeBacklogs} active backlog(s) → -${arrearPenalty} pts penalty. Clear to recover score.`,
     },
   ];
 
   const weakest = [...dimensions].sort((a, b) => a.score - b.score)[0];
 
   return (
-    <div className="space-y-12 pb-24 p-8 bg-white min-h-screen text-black font-sans selection:bg-[#0066FF]/20">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b-4 border-black/5">
+    <div className="space-y-12 pt-10 pb-24">
+      {/* Header section */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pb-8 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="px-3 py-1 rounded-full bg-black text-white text-[8px] font-black uppercase tracking-widest">
-              LIVE SCORE
-            </div>
-            <div
-              className="px-3 py-1 rounded-full text-white text-[8px] font-black uppercase tracking-widest"
-              style={{ backgroundColor: level.color }}
-            >
-              {level.label}
-            </div>
+          <div className="flex items-center gap-2 mb-4">
+             <div className="px-2.5 py-1 rounded bg-[#0f3b9c]/10 text-[#0f3b9c] text-xs font-bold tracking-wide uppercase">Performance Hub</div>
+             <div className="px-2.5 py-1 rounded bg-emerald-50 text-emerald-600 text-xs font-bold tracking-wide uppercase border border-emerald-100 flex items-center gap-1.5">
+               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" /> Live Score
+             </div>
           </div>
-          <h1 className="text-5xl font-black tracking-tighter uppercase leading-none mb-3">
-            PLACEMENT <span className="text-[#0066FF]">READINESS</span>
-          </h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40">
-            5-DIMENSION COMPOSITE SCORE • {student.name}
-          </p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-1">Placement Readiness Score</h1>
+          <p className="text-sm font-medium text-slate-500">Comprehensive analysis of your industry readiness quotient</p>
         </div>
-        {level.next && (
-          <div className="bg-[#f4f4f5] px-8 py-5 rounded-[2.5rem] flex items-center gap-4">
-            <div>
-              <div className="text-[8px] font-black uppercase tracking-widest text-black/40 mb-1">
-                NEXT LEVEL
-              </div>
-              <div className="text-sm font-black uppercase tracking-widest">
-                +{level.next - scores.composite} pts to{" "}
-                <span style={{ color: level.color }}>
-                  {getLevel(level.next).label}
-                </span>
-              </div>
-            </div>
-            <ChevronRight className="w-6 h-6 text-black/20" />
-          </div>
-        )}
+
+        <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm">
+           <div className="text-right">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Current Tier</div>
+              <div className="text-lg font-extrabold text-[#0f3b9c]">{level.label}</div>
+           </div>
+           <Award className="w-8 h-8 text-[#0f3b9c]" />
+        </div>
       </div>
 
-      {/* Score Ring + Level */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <div className="lg:col-span-4 flex flex-col items-center gap-8">
-          <div className="bg-black text-white rounded-[4rem] p-12 flex flex-col items-center gap-6 w-full relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-[#0066FF]/20 blur-[80px] rounded-full -mr-20 -mt-20" />
-            <ScoreRing score={scores.composite} color={level.color} />
-            <div className="text-center relative z-10">
-              <div
-                className="text-3xl font-black uppercase tracking-widest mb-1"
-                style={{ color: level.color }}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* Main Score Visualizer */}
+        <div className="lg:col-span-4 flex flex-col gap-8">
+           <div className="bg-white border border-slate-100 rounded-[3rem] p-12 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-[#0f3b9c]/5 rounded-full blur-3xl -mr-24 -mt-24" />
+              <ScoreRing score={scores.composite} level={level} />
+              <div className="mt-8 text-center space-y-1">
+                 <div className="text-2xl font-bold text-slate-900">{level.label}</div>
+                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Tier Accreditation</p>
+              </div>
+           </div>
+
+
+
+           {/* Priority Fix */}
+           <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100">
+              <div className="flex items-center gap-3 mb-4">
+                 <AlertCircle className="w-5 h-5 text-amber-600" />
+                 <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600">Priority Optimization</span>
+              </div>
+              <h4 className="text-base font-bold text-slate-900 mb-2">{weakest.label}</h4>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">{weakest.tip}</p>
+           </div>
+        </div>
+
+        {/* Detailed Breakdown */}
+        <div className="lg:col-span-8 space-y-10">
+           <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-3">
+                 <BarChart2 className="w-5 h-5 text-[#0f3b9c]" /> Quotient Analysis
+              </h2>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {dimensions.map((d, i) => (
+                <DimensionCard key={d.label} {...d} delay={i * 0.07} />
+              ))}
+           </div>
+
+           {/* Call to Action */}
+           <div className="mt-8 p-10 rounded-[2.5rem] bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-slate-200">
+              <div className="space-y-3">
+                 <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Skill Growth Boost</span>
+                 </div>
+                 <h3 className="text-2xl font-bold tracking-tight">Daily Cognitive Challenge</h3>
+                 <p className="text-sm text-slate-400 font-medium">Earn +5 points every day towards your problem solving score.</p>
+              </div>
+              <button 
+                onClick={() => router.push("/dashboard/student/quiz")}
+                className="px-8 py-4 bg-[#0f3b9c] text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-900/40"
               >
-                {level.label}
-              </div>
-              <div className="text-[9px] font-black uppercase tracking-[0.4em] text-white/30">
-                CANDIDATE TIER
-              </div>
-            </div>
-          </div>
-
-          {/* Weakest dimension alert */}
-          <div className="w-full bg-[#FF8A00]/5 border-2 border-[#FF8A00]/20 rounded-[2.5rem] p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="w-5 h-5 text-[#FF8A00]" />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#FF8A00]">
-                PRIORITY IMPROVEMENT
-              </span>
-            </div>
-            <h4 className="font-black uppercase text-sm tracking-tight mb-2">
-              {weakest.label}
-            </h4>
-            <p className="text-[10px] text-black/50 font-bold leading-relaxed">{weakest.tip}</p>
-          </div>
-
-          {/* Score history */}
-          <div className="w-full bg-[#f4f4f5] rounded-[2.5rem] p-8">
-            <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-black/40 mb-6 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" /> SCORE HISTORY (6 MONTHS)
-            </h3>
-            <Sparkline current={scores.composite} />
-          </div>
-        </div>
-
-        {/* Dimension cards */}
-        <div className="lg:col-span-8">
-          <h2 className="text-4xl font-black tracking-tighter uppercase italic mb-10 flex items-center gap-4">
-            <BarChart2 className="w-10 h-10 text-[#0066FF]" /> SCORE{" "}
-            <span className="text-outline border-black text-black">BREAKDOWN</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {dimensions.map((d, i) => (
-              <DimensionCard key={d.label} {...d} delay={i * 0.1} />
-            ))}
-          </div>
+                Launch Quiz <ArrowUpRight className="w-4 h-4" />
+              </button>
+           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Tips banner */}
-      <div className="bg-black text-white rounded-[3rem] p-10 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0066FF]/20 to-transparent pointer-events-none" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3">
-            <CheckCircle2 className="w-5 h-5 text-[#0066FF]" />
-            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">
-              HOW TO BOOST YOUR PRS
-            </span>
-          </div>
-          <p className="font-black uppercase tracking-tight text-xl">
-            Complete the Daily Quiz →{" "}
-            <span className="text-[#FF8A00]">+5 to Problem Solving</span>
-          </p>
+function RequirementBox({ icon, label, value, current, pass } : { icon: React.ReactNode, label: string, value: any, current: any, pass: boolean }) {
+  return (
+    <div className="p-6 rounded-2xl bg-white border border-slate-100 flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">{icon}</div>
+        <div className={cn("text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest", pass ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+          {pass ? "Verified" : "Sync Error"}
         </div>
-        <button
-          onClick={() => router.push("/dashboard/student/quiz")}
-          className="relative z-10 px-8 py-4 bg-[#0066FF] text-white rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-[#FF8A00] transition-all flex items-center gap-2 shrink-0"
-        >
-          TAKE TODAY&apos;S QUIZ <ArrowUpRight className="w-4 h-4" />
-        </button>
+      </div>
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{label}</div>
+        <div className="text-2xl font-bold text-slate-900 tracking-tight">{value}</div>
+        <div className="text-[10px] font-medium text-slate-400 mt-2">Candidate Status: <span className={cn("font-bold", pass ? "text-slate-900" : "text-red-500")}>{current}</span></div>
       </div>
     </div>
   );

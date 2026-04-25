@@ -1,39 +1,40 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Trophy, 
-  Target, 
-  AlertCircle, 
-  TrendingUp, 
-  ChevronRight,
+import {
+  Trophy,
+  Target,
+  AlertCircle,
+  TrendingUp,
+  Building2,
   Info,
   X,
   CheckCircle2,
-  Lock,
+  XCircle,
+  Clock,
   ArrowRight,
   ArrowUpRight,
   Code,
   Globe,
   Award,
   Zap,
-  Star
+  Star,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, ReactNode } from "react";
+import { useEffect, useState, useRef, useMemo, ReactNode } from "react";
 import React from "react";
-import { fetchFromGAS, submitApplication } from "@/lib/api";
-import { calculateMatch, Student, Company } from "@/lib/matching";
+import { fetchFromGAS, updateStudent } from "@/lib/api";
+import { Student, Company, getStudentStatus, StudentStatus } from "@/lib/matching";
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [student, setStudent] = useState<Student | null>(null);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
-   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [applying, setApplying] = useState<string | null>(null);
-  const [applied, setApplied] = useState<Set<string>>(new Set());
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   useEffect(() => {
     const savedId = localStorage.getItem("spos_user_id");
@@ -43,172 +44,142 @@ export default function StudentDashboard() {
     }
 
     async function loadData() {
-      const studData = await fetchFromGAS('getStudents');
-      const compData = await fetchFromGAS('getCompanies');
-      
+      const [studData, compData] = await Promise.all([
+        fetchFromGAS('getStudents'),
+        fetchFromGAS('getCompanies')
+      ]);
+
       const currentStudent = studData.find((s: any) => String(s.id) === savedId);
-      if (currentStudent) {
-        setStudent(currentStudent);
-      } else {
+      if (!currentStudent) {
         router.push("/auth/login");
         return;
       }
-      
+
+      setStudent(currentStudent);
+      setAllStudents(studData);
       setCompanies(compData);
       setLoading(false);
     }
     loadData();
   }, [router]);
 
-  const handleApply = async (company: Company) => {
-    if (!student) return;
-    setApplying(company.id);
-    try {
-      await submitApplication(student.id, student.name, company.id, company.name);
-      setApplied(prev => new Set(prev).add(company.id));
-    } catch (error) {
-       console.error("Application failed:", error);
-    } finally {
-      setApplying(null);
+  // Pre-compute statuses for all companies (memoized to avoid recomputation on every render)
+  const companyStatuses = useMemo(() => {
+    if (!student) return new Map<string, StudentStatus>();
+    const map = new Map<string, StudentStatus>();
+    for (const company of companies) {
+      map.set(company.id, getStudentStatus(student, company, allStudents));
     }
-  };
+    return map;
+  }, [student, companies, allStudents]);
 
-  if (loading || !student) return <div className="flex items-center justify-center min-h-screen font-black uppercase tracking-widest text-[#0066FF] animate-pulse">Synchronizing Intelligence...</div>;
+  if (loading || !student) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#0f3b9c]">
+      <div className="w-10 h-10 border-4 border-[#0f3b9c]/20 border-t-[#0f3b9c] rounded-full animate-spin mb-4" />
+      <div className="text-sm font-semibold tracking-wide">Loading Dashboard Data...</div>
+    </div>
+  );
+
+  const selectedCount = [...companyStatuses.values()].filter(s => s.status === 'selected').length;
 
   return (
-    <div className="space-y-12 pb-24 p-8 bg-white min-h-screen text-black font-sans selection:bg-[#0066FF]/20">
-      {/* Refined Identity Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-8 border-b-4 border-black/5">
+    <div className="space-y-10 pt-10 pb-24">
+      {/* Identity Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-6">
-             <div className="px-3 py-1 rounded-full bg-black text-white text-[8px] font-black uppercase tracking-widest">ID: {student.id}</div>
-             <div className="px-3 py-1 rounded-full bg-[#0066FF] text-white text-[8px] font-black uppercase tracking-widest">PSNA LIVE</div>
+          <div className="flex items-center gap-2 mb-3">
+             <div className="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-xs font-semibold tracking-wide">ID: {student.id}</div>
+             <div className="px-2.5 py-1 rounded bg-[#0f3b9c]/10 text-[#0f3b9c] text-xs font-semibold tracking-wide">verified</div>
           </div>
-          <div className="space-y-2">
-            <h1 className="text-5xl font-black tracking-tighter uppercase leading-none">
-              {student.name}
-            </h1>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold text-slate-900">{student.name}</h1>
             <div className="flex items-center gap-3">
-              <div className="px-4 py-1.5 rounded-xl bg-[#FF8A00] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#FF8A00]/20 flex items-center gap-2">
-                <Star className="w-3 h-3 fill-current" /> SECTION D
+              <div className="text-sm font-medium text-slate-500">
+                {(student as any).batch ? `Batch ${(student as any).batch}` : 'Batch —'} • {student.dept || '—'}
               </div>
-              <div className="text-[10px] text-black/40 font-black uppercase tracking-[0.3em] italic">BATCH OF 2026 • {student.dept}</div>
+              <div className="text-[10px] font-bold text-[#0f3b9c] uppercase tracking-widest mt-1">
+                PSNA COLLEGE OF ENGINEERING AND TECHNOLOGY
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-            <div className="bg-black text-white px-8 py-5 rounded-[2.5rem] flex items-center gap-6 shadow-xl relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 w-16 h-16 bg-[#0066FF]/20 blur-2xl rounded-full" />
-                 <div className="relative z-10">
-                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 block mb-1">SYSTEM STATUS</span>
-                    <span className="text-sm font-black uppercase tracking-widest italic">PSNA CERTIFIED</span>
-                 </div>
-                 <CheckCircle2 className="w-8 h-8 text-[#FF8A00] relative z-10" />
+        <div className="flex items-center">
+          <div className="bg-white border border-slate-200 px-6 py-4 rounded-xl flex items-center gap-4 shadow-sm">
+            <div>
+              <span className="text-xs font-medium text-slate-500 block">Shortlisted In</span>
+              <span className="text-sm font-bold text-emerald-600">{selectedCount} Drive{selectedCount !== 1 ? 's' : ''}</span>
             </div>
+            <Trophy className="w-8 h-8 text-emerald-500" />
+          </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="AGGREGATE CGPA" value={student.cgpa.toString()} sub="ELITE PLACEMENT RANK" icon={<TrendingUp />} color="#0066FF" />
-        <StatCard label="SKILL QUOTIENT" value={`${Math.min(100, student.skills.length * 15)}%`} sub="PORTFOLIO STRENGTH" icon={<Zap />} color="#FF8A00" />
-        <StatCard label="ACTIVE BACKLOGS" value={student.activeBacklogs.toString()} sub="ELIGIBILITY RISK" icon={<AlertCircle />} color={student.activeBacklogs > 0 ? "#FF0000" : "#0066FF"} />
-        <StatCard label="VERIFICATIONS" value={student.certifications.toString()} sub="GLOBAL BADGES" icon={<Award />} color="#9333EA" />
+        <StatCard label="Aggregate CGPA" value={student.cgpa.toString()} sub="Current standing" icon={<TrendingUp />} color="#0f3b9c" />
+        <StatCard label="Skill Quotient" value={`${Math.min(100, student.skills.length * 15)}%`} sub="Portfolio strength" icon={<Zap />} color="#f59e0b" />
+        <StatCard label="Active Backlogs" value={student.activeBacklogs.toString()} sub="Current risk level" icon={<AlertCircle />} color={student.activeBacklogs > 0 ? "#ef4444" : "#10b981"} />
+        <StatCard label="Certifications" value={student.certifications.toString()} sub="Verified credentials" icon={<Award />} color="#6366f1" />
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-8 border-t-4 border-black/5">
-        <div className="lg:col-span-8 space-y-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
+        <div className="lg:col-span-8 space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-4xl font-black tracking-tighter uppercase italic flex items-center gap-4">
-              <Code className="w-10 h-10 text-[#FF8A00]" /> RECRUITMENT <span className="text-outline border-black text-black">DRIVES</span>
+            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+              <Building2 className="w-6 h-6 text-[#0f3b9c]" /> Active Drives
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {companies.map((company, i) => {
-              const match = calculateMatch(student, company);
-              return (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  key={company.id} 
-                  onClick={() => setSelectedCompany(company)}
-                  className="bg-black text-white jobia-card group cursor-pointer shadow-2xl hover:shadow-[#0066FF]/20 relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#0066FF]/20 blur-[80px] rounded-full -mr-16 -mt-16 group-hover:bg-[#FF8A00]/20 transition-all" />
-                  
-                  <div className="flex items-center justify-between mb-12">
-                    <div className="w-16 h-16 rounded-[2rem] bg-white/10 flex items-center justify-center font-black text-3xl text-[#0066FF] shadow-xl group-hover:bg-[#0066FF] group-hover:text-white transition-all">
-                      {company.name[0]}
-                    </div>
-                    <div className="text-right">
-                      <div className={cn(
-                        "text-5xl font-black leading-none mb-1",
-                        match.score > 80 ? "text-[#FF8A00]" : "text-[#0066FF]"
-                      )}>
-                        {match.score}%
-                      </div>
-                      <div className="text-[8px] uppercase tracking-[0.3em] text-white/40 font-black">MATCH SCORE</div>
-                    </div>
-                  </div>
-
-                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-2 group-hover:text-[#FF8A00] transition-colors">{company.name}</h3>
-                  <div className="text-[10px] text-white/40 font-black uppercase tracking-[0.3em] mb-8">FULL-TIME • 2026 Batch</div>
-
-                  <div className="flex flex-wrap gap-2 mb-10">
-                    {company.requiredSkills.slice(0, 3).map(skill => (
-                      <span key={skill} className="px-4 py-2 rounded-xl bg-white/5 text-[8px] font-black uppercase tracking-widest border border-white/10">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-8 border-t border-white/10 relative z-10">
-                    <div className={cn(
-                      "px-5 py-2.5 rounded-2xl text-[10px] font-black tracking-widest border uppercase flex items-center gap-2",
-                      match.isEligible ? "bg-[#FF8A00]/20 text-[#FF8A00] border-[#FF8A00]/40" : "bg-red-500/20 text-red-500 border-red-500/40"
-                    )}>
-                      {match.isEligible ? "ELIGIBLE" : "INELIGIBLE"}
-                    </div>
-                    <button className="text-[10px] font-black tracking-widest bg-white text-black px-6 py-3 rounded-2xl flex items-center gap-2 group/btn uppercase hover:bg-[#FF8A00] hover:text-white transition-all">
-                      ANALYZE <ArrowUpRight className="w-4 h-4 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+          {companies.length === 0 ? (
+            <div className="py-16 text-center text-slate-400 text-sm font-medium">
+              No active drives at the moment. Check back soon.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {companies.map((company, i) => {
+                const status = companyStatuses.get(company.id);
+                return (
+                  <DriveCard
+                    key={company.id}
+                    company={company}
+                    status={status}
+                    index={i}
+                    onClick={() => setSelectedCompany(company)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar */}
-        <div className="lg:col-span-4 space-y-8">
-          <div className="bg-black text-white p-10 rounded-[3rem] shadow-2xl shadow-[#0066FF]/10">
-            <h3 className="text-xl font-black uppercase tracking-widest mb-10 flex items-center justify-between">
-               INSIGHTS <TrendingUp className="w-6 h-6 text-[#0066FF]" />
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+               <TrendingUp className="w-5 h-5 text-[#0f3b9c]" /> Quick Insights
             </h3>
-            <div className="space-y-6">
-               <InsightItem title="NEXT-UP" desc="Add Docker for +18% leverage." color="#0066FF" />
-               <InsightItem title="GPA BOOST" desc="Hit 8.5 for ELITE ranking." color="#FF8A00" />
-               <InsightItem title="GITHUB" desc="Your 'SPOS' repo is trending." color="#9333EA" />
+            <div className="space-y-5">
+               <InsightItem title="How Shortlisting Works" desc="The system auto-ranks eligible students. No manual apply — your profile data determines selection." color="#0f3b9c" />
+               <InsightItem title="Boost Your Score" desc="Upload resume and sync LeetCode to improve your PRS before deadlines." color="#f59e0b" />
+               <InsightItem title="GitHub Projects" desc="Validate GitHub projects via the Projects tab to earn extra ranking points." color="#10b981" />
             </div>
           </div>
 
-          <CodingStats studentId={student.id} />
+          <CodingStats studentId={student.id} initialUsername={(student as any).leetcodeUsername || undefined} />
 
-          <div className="bg-[#f4f4f5] p-10 rounded-[3.5rem]">
-             <h3 className="text-xl font-black uppercase tracking-widest mb-10 flex items-center justify-between">
-               LINKS <Globe className="w-6 h-6 text-[#0066FF]" />
+          <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
+             <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+               <Globe className="w-5 h-5 text-[#0f3b9c]" /> Important Links
              </h3>
-             <div className="space-y-4">
-               <button onClick={() => window.open(student.githubLink, '_blank')} className="w-full flex items-center justify-between p-6 rounded-[2rem] bg-white hover:bg-[#0066FF] hover:text-white transition-all group font-black uppercase tracking-widest text-[10px]">
-                 Github
+             <div className="space-y-3">
+               <button onClick={() => window.open(student.githubLink, '_blank')} className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-[#0f3b9c] hover:text-[#0f3b9c] transition-all group font-semibold text-sm text-slate-700">
+                 GitHub Profile
                  <ArrowUpRight className="w-4 h-4" />
                </button>
-               <button onClick={() => window.open(student.resume_link, '_blank')} className="w-full flex items-center justify-between p-6 rounded-[2rem] bg-white hover:bg-[#FF8A00] hover:text-white transition-all group font-black uppercase tracking-widest text-[10px]">
-                 Resume
+               <button onClick={() => window.open(student.resume_link, '_blank')} className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-[#0f3b9c] hover:text-[#0f3b9c] transition-all group font-semibold text-sm text-slate-700">
+                 View Resume
                  <ArrowUpRight className="w-4 h-4" />
                </button>
              </div>
@@ -216,16 +187,14 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Detail Modal */}
       <AnimatePresence>
         {selectedCompany && (
           <Modal onClose={() => setSelectedCompany(null)} title={selectedCompany.name}>
-            <CompanyDetailView 
-              student={student} 
-              company={selectedCompany} 
-              isApplying={applying === selectedCompany.id}
-              isApplied={applied.has(selectedCompany.id)}
-              onApply={() => handleApply(selectedCompany)}
+            <DriveDetailView
+              student={student}
+              company={selectedCompany}
+              status={companyStatuses.get(selectedCompany.id)}
             />
           </Modal>
         )}
@@ -234,25 +203,273 @@ export default function StudentDashboard() {
   );
 }
 
+// ─── Drive Card ───────────────────────────────────────────────────────────────
+
+function DriveCard({ company, status, index, onClick }: {
+  company: Company;
+  status: StudentStatus | undefined;
+  index: number;
+  onClick: () => void;
+}) {
+  const statusConfig = {
+    'selected': {
+      badge: 'SHORTLISTED',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+      cardBorder: 'border-emerald-200',
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+    },
+    'eligible-not-selected': {
+      badge: 'ELIGIBLE',
+      badgeClass: 'bg-amber-50 text-amber-700 border border-amber-200',
+      cardBorder: 'border-amber-100',
+      icon: <Clock className="w-3.5 h-3.5" />,
+    },
+    'not-eligible': {
+      badge: 'NOT ELIGIBLE',
+      badgeClass: 'bg-red-50 text-red-600 border border-red-200',
+      cardBorder: 'border-slate-200',
+      icon: <XCircle className="w-3.5 h-3.5" />,
+    },
+  };
+
+  const cfg = status ? statusConfig[status.status] : statusConfig['not-eligible'];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.07 }}
+      onClick={onClick}
+      className={cn("jobia-card cursor-pointer group flex flex-col border", cfg.cardBorder)}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div className="w-12 h-12 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-xl text-indigo-600">
+          {company.name[0]}
+        </div>
+        {status && status.status !== 'not-eligible' && (
+          <div className="text-right">
+            <div className="text-2xl font-bold leading-none mb-1 text-[#0f3b9c]">
+              #{status.rank}
+            </div>
+            <div className="text-xs font-medium text-slate-500 uppercase tracking-widest">
+              of {status.totalEligible}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <h3 className="text-lg font-bold text-slate-800 mb-1">{company.name}</h3>
+      <div className="text-xs text-slate-500 font-medium mb-1">
+        {company.role || 'Software Engineer'} {company.salary ? `• ${company.salary}` : ''}
+      </div>
+      <div className="text-xs text-slate-400 font-medium mb-6">
+        {company.requirementType === 'skill-based' ? 'Skill-Based' : 'Open to All'} • 2026 Batch
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-8 mt-auto">
+        {company.requiredSkills.slice(0, 3).map(skill => (
+          <span key={skill} className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+            {skill}
+          </span>
+        ))}
+        {company.requiredSkills.length > 3 && (
+          <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-500 text-xs font-medium border border-slate-200">
+            +{company.requiredSkills.length - 3}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+        <div className={cn("px-3 py-1 rounded flex items-center gap-1.5 text-xs font-bold", cfg.badgeClass)}>
+          {cfg.icon} {cfg.badge}
+        </div>
+        <button className="text-sm font-semibold text-[#0f3b9c] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          Details <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Drive Detail View ────────────────────────────────────────────────────────
+
+function DriveDetailView({ student, company, status }: {
+  student: Student;
+  company: Company;
+  status: StudentStatus | undefined;
+}) {
+  if (!status) return null;
+
+  const isSelected = status.status === 'selected';
+  const isEligible = status.status !== 'not-eligible';
+
+  return (
+    <div className="space-y-8">
+      {/* Status Banner */}
+      <div className={cn(
+        "p-5 rounded-xl border flex items-center gap-4",
+        isSelected
+          ? "bg-emerald-50 border-emerald-200"
+          : isEligible
+            ? "bg-amber-50 border-amber-200"
+            : "bg-red-50 border-red-200"
+      )}>
+        <div className="shrink-0">
+          {isSelected
+            ? <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            : isEligible
+              ? <Clock className="w-8 h-8 text-amber-600" />
+              : <XCircle className="w-8 h-8 text-red-600" />
+          }
+        </div>
+        <div>
+          <div className={cn(
+            "text-lg font-bold",
+            isSelected ? "text-emerald-700" : isEligible ? "text-amber-700" : "text-red-700"
+          )}>
+            {isSelected ? "You are shortlisted!" : isEligible ? "Eligible — awaiting final selection" : "Not eligible for this drive"}
+          </div>
+          {isEligible && (
+            <div className="text-sm font-medium text-slate-600 mt-0.5">
+              Rank <span className="font-bold">#{status.rank}</span> out of <span className="font-bold">{status.totalEligible}</span> eligible students
+              {company.selectCount ? ` • Top ${company.selectCount} selected` : ' • No cap set'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Score Breakdown */}
+      {isEligible && (
+        <div>
+          <h4 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Your Score Breakdown</h4>
+          <div className="grid grid-cols-3 gap-3">
+            <ScoreTile label="Combined Score" value={`${status.combinedScore}`} unit="pts" color="#0f3b9c" />
+            <ScoreTile label="PRS Score" value={`${status.prsScore}`} unit="pts" color="#6366f1" />
+            <ScoreTile label="Skill Match" value={`${status.skillMatchPercent}`} unit="%" color="#f59e0b" />
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Reasons */}
+      {!isEligible && status.reasons.length > 0 && (
+        <div className="p-5 rounded-xl bg-red-50 border border-red-100">
+          <h4 className="flex items-center gap-2 text-red-700 font-bold text-sm mb-3">
+            <AlertCircle className="w-4 h-4" /> Why You Are Not Eligible
+          </h4>
+          <ul className="space-y-2">
+            {status.reasons.map((reason, i) => (
+              <li key={i} className="text-sm font-medium text-red-600 flex items-start gap-2">
+                <span className="mt-1 shrink-0">•</span> {reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Improvement Suggestions */}
+      {status.suggestions.length > 0 && (
+        <div className="p-5 rounded-xl bg-blue-50 border border-blue-100">
+          <h4 className="flex items-center gap-2 text-blue-700 font-bold text-sm mb-3">
+            <Lightbulb className="w-4 h-4" /> How to Improve Your Chances
+          </h4>
+          <ul className="space-y-2">
+            {status.suggestions.map((tip, i) => (
+              <li key={i} className="text-sm font-medium text-blue-700 flex items-start gap-2">
+                <span className="mt-1 shrink-0 text-blue-400">→</span> {tip}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Drive Requirements */}
+      <div>
+        <h4 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">Drive Requirements</h4>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <RequirementTile label="Min CGPA" value={company.minCgpa.toString()} met={student.cgpa >= company.minCgpa} />
+          <RequirementTile label="Max Active Backlogs" value={(company.allowedBacklogs === undefined || company.allowedBacklogs === -1) ? 'No Limit' : company.allowedBacklogs.toString()} met={(company.allowedBacklogs === undefined || company.allowedBacklogs === -1) || student.activeBacklogs <= company.allowedBacklogs} />
+          {company.noHistoryOfArrears && (
+            <RequirementTile label="Arrear History" value="Zero required" met={student.totalBacklogs === 0} />
+          )}
+          {company.selectCount ? (
+            <RequirementTile label="Seats Available" value={company.selectCount.toString()} met={true} />
+          ) : null}
+        </div>
+
+        {company.requiredSkills.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Required Skills</div>
+            {company.requiredSkills.map(skill => {
+              const hasSkill = student.skills.some(s => s.toLowerCase() === skill.toLowerCase());
+              const isPriority = company.prioritySkills.some(ps => ps.toLowerCase() === skill.toLowerCase());
+              return (
+                <div key={skill} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-700">{skill}</span>
+                    {isPriority && (
+                      <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded uppercase tracking-wide">Priority</span>
+                    )}
+                  </div>
+                  {hasSkill ? (
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2.5 py-1 rounded">Verified</span>
+                  ) : (
+                    <span className="text-xs font-bold text-red-600 bg-red-100 px-2.5 py-1 rounded">Gap</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ScoreTile({ label, value, unit, color }: { label: string; value: string; unit: string; color: string }) {
+  return (
+    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
+      <div className="text-2xl font-bold mb-0.5" style={{ color }}>{value}<span className="text-sm ml-0.5">{unit}</span></div>
+      <div className="text-[10px] font-semibold uppercase text-slate-400 tracking-wide">{label}</div>
+    </div>
+  );
+}
+
+function RequirementTile({ label, value, met }: { label: string; value: string; met: boolean }) {
+  return (
+    <div className={cn(
+      "p-3 rounded-lg border flex items-center justify-between",
+      met ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"
+    )}>
+      <div>
+        <div className="text-[10px] font-semibold uppercase text-slate-500 tracking-wide">{label}</div>
+        <div className="text-sm font-bold text-slate-800">{value}</div>
+      </div>
+      {met ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <XCircle className="w-4 h-4 text-red-500 shrink-0" />}
+    </div>
+  );
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+
 function Modal({ children, onClose, title }: { children: ReactNode, onClose: () => void, title: string }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
     >
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 50 }}
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 50 }}
-        className="w-full max-w-2xl bg-white rounded-[3.5rem] shadow-2xl overflow-hidden text-black"
+        exit={{ scale: 0.95, opacity: 0, y: 10 }}
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden text-slate-900"
       >
-        <div className="p-10 border-b-4 border-black/5 flex items-center justify-between">
-          <h3 className="text-4xl font-black tracking-tighter uppercase italic">{title}</h3>
-          <button onClick={onClose} className="w-12 h-12 hover:bg-black/5 rounded-full flex items-center justify-center transition-colors"><X className="w-8 h-8" /></button>
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <h3 className="text-xl font-bold">{title}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-md transition-colors text-slate-500"><X className="w-5 h-5" /></button>
         </div>
-        <div className="p-10 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {children}
         </div>
       </motion.div>
@@ -260,202 +477,135 @@ function Modal({ children, onClose, title }: { children: ReactNode, onClose: () 
   );
 }
 
+// ─── Shared Sub-components ────────────────────────────────────────────────────
+
 function StatCard({ label, value, sub, icon, color }: { label: string, value: string, sub: string, icon: ReactNode, color: string }) {
   return (
-    <div className="bg-black text-white jobia-card group border-black/5 hover:bg-[#0066FF] transition-all">
-      <div className="flex items-center justify-between mb-8">
-        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] group-hover:text-white/60">{label}</span>
-        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-all")} style={{ backgroundColor: `${color}20`, color: color }}>
+    <div className="jobia-card border-slate-200 flex flex-col group p-6">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+        <div className="p-2 rounded-lg" style={{ backgroundColor: `${color}10`, color: color }}>
           {icon}
         </div>
       </div>
-      <div className="text-6xl font-black mb-2 tracking-tighter">{value}</div>
-      <p className="text-[10px] text-white/40 font-black uppercase tracking-widest group-hover:text-white/60">{sub}</p>
+      <div className="text-3xl font-bold text-slate-900 mb-1">{value}</div>
+      <p className="text-sm font-medium text-slate-500">{sub}</p>
     </div>
   );
 }
 
 function InsightItem({ title, desc, color }: { title: string, desc: string, color: string }) {
   return (
-    <div className="group cursor-default">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-        <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">{title}</h4>
+    <div className="group cursor-default flex gap-4">
+      <div className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ backgroundColor: color }} />
+      <div>
+        <h4 className="text-sm font-bold text-slate-800">{title}</h4>
+        <p className="text-sm text-slate-500 mt-1">{desc}</p>
       </div>
-      <p className="text-sm text-white/40 font-bold group-hover:text-white transition-colors">{desc}</p>
     </div>
   );
 }
 
-function CompanyDetailView({ student, company, isApplying, isApplied, onApply }: { student: Student, company: Company, isApplying: boolean, isApplied: boolean, onApply: () => void }) {
-  const match = calculateMatch(student, company);
-  return (
-    <div className="space-y-10">
-      <div className="grid grid-cols-2 gap-6">
-        <div className="p-8 rounded-[2.5rem] bg-black text-white">
-          <div className="text-6xl font-black text-[#0066FF] mb-2 tracking-tighter">{match.score}%</div>
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">ALIGNMENT SCORE</div>
-        </div>
-        <div className={cn(
-          "p-8 rounded-[2.5rem] border-4",
-          match.isEligible ? "bg-[#FF8A00]/5 border-[#FF8A00]/20 text-black" : "bg-red-500/5 border-red-500/20 text-red-600"
-        )}>
-          <div className="text-4xl font-black mb-2 uppercase italic tracking-tighter">{match.isEligible ? "AUTHORISED" : "DENIED"}</div>
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">SYSTEM STATUS</div>
-        </div>
-      </div>
-
-      {!match.isEligible && (
-        <div className="p-8 rounded-[3rem] bg-red-500/5 border-4 border-red-500/10">
-          <h4 className="flex items-center gap-3 text-red-600 font-black uppercase text-xs tracking-[0.3em] mb-6">
-            <AlertCircle className="w-5 h-5" /> REJECTION ANALYSIS
-          </h4>
-          <ul className="space-y-4">
-            {match.reasons?.map((reason: string, i: number) => (
-              <li key={i} className="text-sm font-bold text-red-600/80 flex items-center gap-4 uppercase italic">
-                <div className="w-3 h-3 rounded-full bg-red-500 shrink-0" /> {reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="space-y-6 pt-6 border-t-4 border-black/5">
-        <h4 className="text-xs font-black uppercase tracking-[0.4em] text-black/40 italic">Technical Requirements</h4>
-        <div className="grid grid-cols-1 gap-4">
-          {company.requiredSkills.map(skill => {
-            const hasSkill = student.skills.some(s => s.toLowerCase() === skill.toLowerCase());
-            return (
-              <div key={skill} className="flex items-center justify-between p-6 rounded-[2rem] bg-black/5">
-                <span className="text-[10px] font-black uppercase tracking-widest">{skill}</span>
-                {hasSkill ? (
-                  <span className="text-[8px] font-black text-[#0066FF] bg-[#0066FF]/10 px-4 py-2 rounded-full uppercase tracking-widest">VERIFIED</span>
-                ) : (
-                  <span className="text-[8px] font-black text-[#FF8A00] bg-[#FF8A00]/10 px-4 py-2 rounded-full uppercase tracking-widest italic">GAP DETECTED</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <button 
-        disabled={!match.isEligible || isApplying || isApplied}
-        onClick={onApply}
-        className={cn(
-          "w-full py-8 rounded-[3rem] font-black text-xl uppercase tracking-[0.4em] shadow-2xl transform transition-all italic",
-          isApplied 
-            ? "bg-green-500 text-white cursor-default" 
-            : isApplying 
-              ? "bg-black/40 text-white cursor-wait animate-pulse" 
-              : match.isEligible ? "bg-black text-white hover:bg-[#FF8A00]" : "bg-black/10 text-black/20 cursor-not-allowed"
-        )}
-      >
-        {isApplied ? "APPLICATION SENT" : isApplying ? "PROCESSING..." : match.isEligible ? "INITIATE APPLICATION" : "TRACK OPPORTUNITY"}
-      </button>
-    </div>
-  );
-}
-
-function CodingStats({ studentId }: { studentId: string }) {
-  const [username, setUsername] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem(`leetcode_${studentId}`) || "";
-    return "";
-  });
-  const [isEditing, setIsEditing] = useState(!username);
+function CodingStats({ studentId, initialUsername }: { studentId: string; initialUsername?: string }) {
+  const [username, setUsername] = useState(initialUsername || "");
+  const [isEditing, setIsEditing] = useState(!initialUsername);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fetchedFor = useRef<string>("");
 
   useEffect(() => {
-    if (username && !isEditing) {
+    if (username && !isEditing && fetchedFor.current !== username) {
+      fetchedFor.current = username;
       setLoading(true);
-      fetch(`https://leetcode-stats-api.herokuapp.com/${username}`)
+      fetch(`/api/leetcode/${username}?studentId=${studentId}`)
         .then(res => res.json())
         .then(data => {
-          if (data.status === "success") setStats(data);
-          else setStats(null);
+          if (data.status === "success") {
+            setStats(data);
+          } else {
+            console.error("LeetCode Error:", data.message);
+            setStats(null);
+          }
         })
         .catch(() => setStats(null))
         .finally(() => setLoading(false));
     }
-  }, [username, isEditing]);
+  }, [username, isEditing, studentId]);
 
-  const saveUsername = (e: React.FormEvent) => {
+  const saveUsername = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.target as HTMLFormElement;
+    const form = e.currentTarget;
     const input = form.elements.namedItem("username") as HTMLInputElement;
     const val = input.value.trim();
-    if (val) {
+    if (!val) return;
+    setSaving(true);
+    try {
+      await updateStudent(studentId, { leetcodeUsername: val });
+    } catch {
+      // DB failed — continue with local-only save
+    } finally {
       localStorage.setItem(`leetcode_${studentId}`, val);
       setUsername(val);
       setIsEditing(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="bg-zinc-900 text-white p-10 rounded-[3rem] shadow-2xl shadow-zinc-900/10">
-      <div className="flex items-center justify-between mb-10">
-        <h3 className="text-xl font-black uppercase tracking-widest flex items-center gap-2">
-           <Code className="w-6 h-6 text-[#FF8A00]" /> LOGIC
+    <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+           <Code className="w-5 h-5 text-[#0f3b9c]" /> Coding Stats
         </h3>
         {!isEditing && (
-          <button onClick={() => setIsEditing(true)} className="text-[10px] font-black uppercase tracking-widest text-[#FF8A00] hover:text-white transition-colors">
-            EDIT
+          <button onClick={() => setIsEditing(true)} className="text-xs font-semibold text-[#0f3b9c] hover:underline">
+            Edit
           </button>
         )}
       </div>
 
       {isEditing ? (
-        <form onSubmit={saveUsername} className="flex flex-col gap-4">
-          <p className="text-[10px] font-black tracking-widest uppercase text-white/40">Connect LeetCode Profile</p>
-          <input 
-            name="username" 
-            defaultValue={username} 
-            placeholder="LeetCode Username"
-            className="w-full px-5 py-4 rounded-2xl bg-white/5 text-sm font-black outline-none focus:ring-2 focus:ring-[#FF8A00] border border-white/10"
+        <form onSubmit={saveUsername} className="flex flex-col gap-3">
+          <p className="text-xs font-medium text-slate-500">Connect LeetCode Profile</p>
+          <input
+            name="username"
+            defaultValue={username}
+            placeholder="Username"
+            className="w-full px-3 py-2 rounded-md bg-white border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#0f3b9c] focus:border-transparent"
           />
-          <button type="submit" className="px-5 py-4 rounded-2xl bg-[#FF8A00] text-black text-[10px] font-black uppercase tracking-widest w-full hover:bg-white transition-colors">
-            SYNC CODING STATS
+          <button type="submit" disabled={saving} className="px-4 py-2 rounded-md bg-[#0f3b9c] text-white text-sm font-semibold hover:bg-[#0c2a70] transition-colors w-full disabled:opacity-60">
+            {saving ? "Saving..." : "Sync Stats"}
           </button>
         </form>
       ) : loading ? (
-        <div className="h-32 flex items-center justify-center animate-pulse text-[#FF8A00] text-xs font-black uppercase tracking-[0.3em]">
-          INTEGRATING...
+        <div className="py-6 flex items-center justify-center text-slate-400 text-sm font-medium">
+          Loading Data...
         </div>
       ) : stats ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/5 rounded-[2rem] p-5">
-              <div className="text-[9px] font-black uppercase tracking-widest text-[#00ADD8] mb-1">EASY</div>
-              <div className="text-3xl font-black tracking-tighter shrink-0">{stats.easySolved}</div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-center">
+              <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Easy</div>
+              <div className="text-xl font-bold text-emerald-600">{stats.easySolved}</div>
             </div>
-            <div className="bg-white/5 border border-white/5 rounded-[2rem] p-5">
-              <div className="text-[9px] font-black uppercase tracking-widest text-[#FF8A00] mb-1">MEDIUM</div>
-              <div className="text-3xl font-black tracking-tighter shrink-0">{stats.mediumSolved}</div>
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-center">
+              <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Medium</div>
+              <div className="text-xl font-bold text-amber-500">{stats.mediumSolved}</div>
             </div>
-            <div className="bg-white/5 border border-white/5 rounded-[2rem] p-5">
-              <div className="text-[9px] font-black uppercase tracking-widest text-[#ef4444] mb-1">HARD</div>
-              <div className="text-3xl font-black tracking-tighter shrink-0">{stats.hardSolved}</div>
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-center">
+              <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Hard</div>
+              <div className="text-xl font-bold text-red-500">{stats.hardSolved}</div>
             </div>
-            <div className="bg-white/5 border border-white/5 rounded-[2rem] p-5 flex flex-col justify-between">
-              <div className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">RANK</div>
-              <div className="text-xl truncate font-black tracking-tighter shrink-0">#{stats.ranking}</div>
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-center flex flex-col justify-center">
+              <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Rank</div>
+              <div className="text-sm truncate font-bold text-slate-800">#{stats.ranking}</div>
             </div>
           </div>
-          <a href={`https://leetcode.com/${username}`} target="_blank" rel="noreferrer" className="flex items-center justify-between w-full py-5 px-6 bg-[#FF8A00]/10 text-[#FF8A00] hover:bg-[#FF8A00] hover:text-black rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all group">
-            LEETCODE PROFILE
-            <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-          </a>
         </div>
       ) : (
-        <div className="text-[10px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 p-5 rounded-2xl">API Error / User Not Found</div>
+        <div className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 p-3 rounded-lg text-center">API Error / Invalid User</div>
       )}
-
-      {/* HackerRank Quick Link placeholder */}
-      <a href="https://hackerrank.com" target="_blank" rel="noreferrer" className="mt-4 flex items-center justify-between p-5 rounded-2xl bg-[#00ea64]/10 hover:bg-[#00ea64] text-[#00ea64] hover:text-black transition-all group">
-         <span className="text-[10px] font-black uppercase tracking-widest">HACKERRANK</span>
-         <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-      </a>
     </div>
   );
 }

@@ -2,122 +2,145 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { GraduationCap, ArrowRight, Loader2, AlertCircle, Stars } from "lucide-react";
+import { GraduationCap, ArrowRight, Loader2, AlertCircle, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fetchFromGAS } from "@/lib/api";
 
 export default function LoginPage() {
-  const [registerNumber, setRegisterNumber] = useState("");
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!registerNumber) return;
+    if (!userId || !password) return;
 
     setLoading(true);
     setError("");
 
+    // Admin Access Logic
+    if (userId.toLowerCase() === "admin" && password === "psna123") {
+      localStorage.setItem("spos_user_id", "admin");
+      localStorage.setItem("spos_user_role", "admin");
+      router.push("/dashboard/admin");
+      setLoading(false);
+      return;
+    }
+
+    // Student Access Logic — check against DB password (defaults to register number)
     try {
       const students = await fetchFromGAS('getStudents');
-      const student = students.find((s: any) => {
-        const studentId = String(s.id).replace(/\.0$/, "");
-        const inputId = String(registerNumber).trim().replace(/\.0$/, "");
-        return studentId === inputId;
-      });
+      const inputId = String(userId).trim().replace(/\.0$/, "");
+      const student = students.find((s: any) => String(s.id).replace(/\.0$/, "") === inputId);
 
-      if (student) {
-        localStorage.setItem("spos_user_id", student.id);
-        localStorage.setItem("spos_user_role", "student");
-        router.push("/dashboard/student");
+      if (!student) {
+        setError("Register number not found. Only pre-registered students can access the portal.");
+        setLoading(false);
+        return;
+      }
+
+      // Password check: use stored password field, fallback to register number for legacy records
+      const expectedPassword = student.password ?? student.id;
+      if (password !== expectedPassword) {
+        setError("Incorrect password. Your default password is your register number.");
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem("spos_user_id", student.id);
+      localStorage.setItem("spos_user_role", "student");
+
+      // First-time login: redirect to profile setup
+      if (!student.profileComplete) {
+        router.push("/auth/profile-setup");
       } else {
-        setError("REGISTER NUMBER NOT FOUND. PLEASE CHECK YOUR DATA.");
+        router.push("/dashboard/student");
       }
     } catch (err) {
-      setError("SYSTEM CONNECTION ERROR. FALLING BACK TO MOCKED DATA...");
-      // In a real scenario we'd handle this better, but for this UX we just alert
+      setError("Unable to connect to service. Please try again later.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6 selection:bg-[#0066FF]/20">
-      {/* Abstract Background Accents */}
-      <div className="absolute top-0 right-0 w-1/2 h-full bg-[#0066FF]/5 skew-x-12 transform origin-top-right transition-all" />
-      <div className="absolute bottom-0 left-0 w-1/4 h-1/2 bg-[#FF8A00]/5 -skew-x-12 transform origin-bottom-left transition-all" />
-      
+    <div className="min-h-[70vh] flex items-center justify-center py-12">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-xl relative z-10"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
       >
-        <div className="bg-white rounded-[3rem] p-12 md:p-16 shadow-2xl border-4 border-white/10">
-          <div className="text-center mb-12">
-            <div className="w-20 h-20 rounded-[2rem] bg-[#0066FF] flex items-center justify-center shadow-xl shadow-[#0066FF]/20 mx-auto mb-8">
-              <GraduationCap className="w-10 h-10 text-white" />
+        <div className="bg-white rounded-3xl p-10 shadow-2xl shadow-slate-200 border border-slate-100">
+          <div className="text-center mb-10">
+            <div className="w-16 h-16 rounded-2xl bg-[#0f3b9c] flex items-center justify-center shadow-lg shadow-[#0f3b9c]/20 mx-auto mb-6">
+              <GraduationCap className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-5xl font-black tracking-tighter mb-4 uppercase">PSNA ACCESS</h1>
-            <p className="text-black/40 font-bold uppercase tracking-widest text-xs">Placement Portal • Verification Core</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Portal Access</h1>
+            <p className="text-sm font-medium text-slate-500">Sign in to your professional profile</p>
+            <div className="text-[10px] font-bold text-[#0f3b9c] uppercase tracking-widest mt-4">
+              PSNA COLLEGE OF ENGINEERING AND TECHNOLOGY
+            </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-8">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-black/40 ml-1">Student Register Number</label>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Identification ID</label>
               <input
                 type="text"
-                placeholder="2303921310421..."
+                placeholder="Reg. Number or Admin ID"
                 required
-                className="w-full bg-black/5 border-2 border-black/5 rounded-[2rem] px-8 py-6 text-black font-black text-xl outline-none focus:border-[#0066FF] focus:ring-8 focus:ring-[#0066FF]/5 transition-all placeholder:text-black/10 tracking-wider"
-                value={registerNumber}
-                onChange={(e) => setRegisterNumber(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-slate-900 font-semibold outline-none focus:border-[#0f3b9c] focus:ring-4 focus:ring-[#0f3b9c]/5 transition-all placeholder:text-slate-300"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Secure Password</label>
+              <input
+                type="password"
+                placeholder="••••••••••••"
+                required
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-slate-900 font-semibold outline-none focus:border-[#0f3b9c] focus:ring-4 focus:ring-[#0f3b9c]/5 transition-all placeholder:text-slate-300"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
             {error && (
               <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-4 p-5 rounded-[1.5rem] bg-red-500/5 border-2 border-red-500/20 text-red-600 text-xs font-black uppercase tracking-wider italic"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[11px] font-bold leading-relaxed"
               >
-                <AlertCircle className="w-5 h-5 shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 {error}
               </motion.div>
             )}
 
             <button
               disabled={loading}
-              className="w-full bg-black hover:bg-[#FF8A00] text-white py-6 rounded-[2rem] font-black text-xl uppercase tracking-widest flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] shadow-xl hover:shadow-[#FF8A00]/20 disabled:opacity-50 group"
+              className="w-full bg-[#0f3b9c] hover:bg-[#0c2a70] text-white py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-[#0f3b9c]/20 disabled:opacity-50 mt-2"
             >
               {loading ? (
-                <Loader2 className="w-6 h-6 animate-spin text-white" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  AUTHORIZE ACCESS <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                  Connect Profile <ArrowRight className="w-5 h-5" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-16 flex items-center justify-between pt-8 border-t-2 border-black/5">
-             <button 
-              onClick={() => router.push("/")}
-              className="text-xs font-black uppercase tracking-widest text-black/40 hover:text-[#0066FF] transition-colors"
-            >
-              ← System Home
-            </button>
-            <div className="flex items-center gap-2 text-[#FF8A00]">
-              <Stars className="w-4 h-4 fill-current" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Version 2.5 Live</span>
-            </div>
+          <p className="mt-5 text-center text-[11px] text-slate-400 font-medium">
+            Default password = register number. Only admin-registered students can log in.
+          </p>
+          <div className="mt-4 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Secure Academic Portal</span>
           </div>
-        </div>
-
-        <div className="mt-8 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">
-                Encrypted Session • SECURE CHANNEL 04
-            </p>
         </div>
       </motion.div>
     </div>

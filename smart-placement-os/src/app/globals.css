@@ -1,33 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #000000;
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
 
   --color-card: #ffffff;
-  --color-card-foreground: #000000;
+  --color-card-foreground: #0f172a;
 
-  --id-blue: #0066FF;
-  --id-orange: #FF8A00;
+  --id-blue: #0f3b9c; 
+  --id-orange: #f59e0b; 
 
-  --color-primary: #0066FF;
+  --color-primary: #0f3b9c;
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: #FF8A00;
-  --color-secondary-foreground: #ffffff;
+  --color-secondary: #e0e7ff;
+  --color-secondary-foreground: #1e3a8a;
 
-  --color-muted: #f4f4f5;
-  --color-muted-foreground: #71717a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
 
-  --color-accent: #FF8A00;
+  --color-accent: #0f3b9c;
   --color-accent-foreground: #ffffff;
 
-  --color-border: #e4e4e7;
-  --color-input: #e4e4e7;
-  --color-ring: #0066FF;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #0f3b9c;
 
-  --radius-lg: 1.5rem;
-  --radius-md: 1rem;
+  --radius-lg: 1rem;
+  --radius-md: 0.75rem;
   --radius-sm: 0.5rem;
 }
 
@@ -37,6 +37,7 @@
   }
   body {
     @apply bg-background text-foreground selection:bg-primary/20;
+    font-family: var(--font-sans, system-ui, sans-serif);
   }
 }
 
@@ -58,7 +59,7 @@
   }
 
   .jobia-card {
-    @apply rounded-[2.5rem] p-8 transition-all duration-500 hover:scale-[1.02];
+    @apply rounded-xl bg-white border border-slate-200 shadow-sm p-6 transition-all duration-300 hover:shadow-md;
   }
 
   .text-outline {
@@ -68,9 +69,9 @@
 }
 
 @utility glass-card {
-  @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl;
+  @apply bg-white/80 backdrop-blur-md border border-slate-200/50 shadow-sm;
 }
 
 @utility dark-section {
-  @apply bg-black text-white;
+  @apply bg-slate-900 text-white;
 }
